@@ -1,0 +1,7 @@
+build
+example
+*sublime*
+test
+*.obo
+*.txt
+.DS_Store
