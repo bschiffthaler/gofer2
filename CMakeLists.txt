@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(gofer2)
+project(gofer2 C CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -24,11 +24,16 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 find_package(cpprest REQUIRED)
 include_directories(${CPPREST_INCLUDE_DIR})
 
+# Threads
+find_package(Threads REQUIRED)
+
 # Link
 if (BUILD_STATIC)
-  target_link_libraries (gofer2 -static ${CPPREST_LIBRARIES} ${Boost_LIBRARIES} 
+  target_link_libraries (gofer2 -static ${CMAKE_THREAD_LIBS_INIT} 
+                         ${CPPREST_LIBRARIES} ${Boost_LIBRARIES} 
                          ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY}) 
 else()
   target_link_libraries (gofer2 ${CPPREST_LIBRARIES} ${Boost_LIBRARIES} 
+                         ${CMAKE_THREAD_LIBS_INIT}
                          ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY}) 
 endif()

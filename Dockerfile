@@ -4,15 +4,14 @@ FROM fedora
 ### Install deps
 #########
 RUN dnf update -y && \
-  dnf install -y gcc cmake boost-devel cpprest-devel git gcc-c++ openssl-devel \
-                 tclap
+  dnf install -y gcc cmake boost-devel cpprest-devel git gcc-c++ openssl-devel
 
 #########
 ### Clone repo
 #########
 WORKDIR /build
-RUN git clone https://autodocker:autodocker@microasp.upsc.se/bastian/gopher2.git
-WORKDIR /build/gopher2/build
+RUN git clone https://github.com/bschiffthaler/gofer2
+WORKDIR /build/gofer2/build
 
 
 #########
@@ -21,7 +20,7 @@ WORKDIR /build/gopher2/build
 RUN rm -rf * && \
   cmake .. && \
   make && \
-  cp gopher2 /usr/local/bin
+  cp gofer2 /usr/local/bin
 
 
 #########
@@ -37,4 +36,4 @@ VOLUME /run
 ### PORT and CMD
 #########
 EXPOSE 5432
-CMD ["gopher2","/run/conf.json"]
+CMD ["gofer2","/run/conf.json"]
