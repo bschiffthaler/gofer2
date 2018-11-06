@@ -285,6 +285,8 @@ void annotation::from_json(web::json::value& json) {
   else
   {
     web::json::value v = json["annotation"];
+    if (! v.has_field("type"))
+      system_error("'type' is a required field for annotation");
     std::string t = v["type"].as_string();
     if (t == "go")
     {
