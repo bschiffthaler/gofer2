@@ -464,3 +464,31 @@ void enrichment::from_json(web::json::value& json, annotation& ann) {
     }
   }
 }
+
+void append_error(web::json::value& json, std::string msg){
+  if (! json.has_field("err"))
+  {
+    json["err"] = web::json::value::array();
+  }
+  json["err"][json["err"].size()] = web::json::value::string(msg);
+}
+
+void append_warning(web::json::value& json, std::string msg){
+  if (! json.has_field("warn"))
+  {
+    json["warn"] = web::json::value::array();
+  }
+  json["warn"][json["warn"].size()] = web::json::value::string(msg);
+}
+
+std::string concat_uri(std::string prefix, std::string suffix) {
+  while(prefix.back() == '/')
+  {
+    prefix.erase(prefix.size() - 1);
+  }
+  while(suffix.front() == '/')
+  {
+    suffix.erase(0);
+  }
+  return std::string(prefix + "/" + suffix);
+}

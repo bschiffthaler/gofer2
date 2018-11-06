@@ -74,3 +74,6 @@ std::pair<std::string, std::string>
 split_first_of(std::string str, std::string pattern);
 web::json::value parse_config(const std::string& file_in);
 std::unordered_set<std::string> read_genelist(std::string& file_in);
+void append_error(web::json::value& json, std::string msg);
+void append_warning(web::json::value& json, std::string msg);
+std::string concat_uri(std::string prefix, std::string suffix);

@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <cpprest/json.h>
 #include <cpprest/http_listener.h>
-#include <tclap/CmdLine.h>
 #include <BSlogger.hpp>
 #include <term.h>
 #include <utility.h>
@@ -17,9 +16,13 @@
 #include <test.h>
 #include <boost/chrono.hpp>
 #include <boost/thread/thread.hpp>
+#include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 #include <handle_enrichment.h>
 #include <handle_translation.h>
 
+namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 class Listener {
 public:
@@ -30,23 +33,50 @@ public:
   std::string uri;
 };
 
+void options_request(const web::http::http_request & request) {
+  web::http::http_response resp(web::http::status_codes::OK);
+  resp.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+  resp.headers().add(U("Access-Control-Allow-Headers"),
+                     U("Origin, Content-Type, Content-Range, "
+                       "Content-Disposition, Content-Description, Accept"));
+  resp.headers().add(U("Access-Control-Allow-Methods"),
+                     U("OPTIONS, POST"));
+  request.reply(resp);
+}
+
 void Listener::start() {
   logger log(std::cerr, uri);
-  log(LOG_INFO) << "Setting up JSON listener at " << uri << '\n';
-  web::http::experimental::listener::http_listener listener(U(uri));
-  listener.open().wait();
 
-  // annotation& this_ann = ann;
-  // enrichment& this_enr = enr;
-  // std::string& this_uri = uri;
+  std::string uri_enrichment = concat_uri(uri, "enrichment");
+  std::string uri_t2g = concat_uri(uri, "term-to-gene");
+  std::string uri_g2t = concat_uri(uri, "gene-to-term");
 
-  listener.support(web::http::methods::POST,
+  web::http::experimental::listener::http_listener
+  listener_enr(U(uri_enrichment));
+  listener_enr.open().wait();
+  log(LOG_INFO) << "Set up JSON listener at " << uri_enrichment << '\n';
+
+  web::http::experimental::listener::http_listener
+  listener_t2g(U(uri_t2g));
+  listener_t2g.open().wait();
+  log(LOG_INFO) << "Set up JSON listener at " << uri_t2g << '\n';
+
+  web::http::experimental::listener::http_listener
+  listener_g2t(U(uri_g2t));
+  listener_g2t.open().wait();
+  log(LOG_INFO) << "Set up JSON listener at " << uri_g2t << '\n';
+
+  /*////////////////////////////////////
+  //
+  //  HANDLE ENRICHMENT REQUESTS
+  //
+  *////////////////////////////////////
+
+  listener_enr.support(web::http::methods::POST,
   [&](const web::http::http_request & request) {
 
     web::json::value arr;
     web::http::status_code status = web::http::status_codes::OK;
-    log(LOG_INFO) << "Received POST \n";
-    //log(LOG_INFO) << request.to_string();
 
     request
     .extract_json()
@@ -57,89 +87,57 @@ void Listener::start() {
         const web::json::value& json = task.get();
         if (!json.is_null())
         {
-          if (json.has_field("enrichment"))
+          if (! json.has_field("genes"))
           {
-            if (! json.has_field("genes"))
+            append_error(arr, "Error: Enrichment selected but no test genes supplied.");
+            return;
+          }
+          if (! json.at("genes").is_array())
+          {
+            append_error(arr, "Error: 'genes' needs to be a JSON array of multiple genes");
+            return;
+          }
+          web::json::array genes = json.at("genes").as_array();
+          std::unordered_set<std::string> test_set;
+          for (web::json::value& gene : genes)
+            test_set.insert(gene.as_string());
+          if (json.at("target").is_array())
+          {
+            web::json::array tasks = json.at("target").as_array();
+            for (web::json::value& task : tasks)
             {
-              arr["err"] = web::json::value::string("Error: Enrichment selected "
-                                                    "but no test genes supplied.");
-              return;
-            }
-            if (! json.at("genes").is_array())
-            {
-              arr["err"] = web::json::value::string("Error: 'genes' needs to "
-                                                    "be an array of multiple genes");
-              return;
-            }
-            web::json::array genes = json.at("genes").as_array();
-            std::unordered_set<std::string> test_set;
-            for (web::json::value& gene : genes)
-              test_set.insert(gene.as_string());
-            if (json.at("enrichment").is_array())
-            {
-              web::json::array tasks = json.at("enrichment").as_array();
-              for (web::json::value& task : tasks)
-              {
-                std::string t = task.as_string();
-                handle_enrichment(enr, ann, t, arr, uri, json, test_set);
-              }
+              std::string t = task.as_string();
+              handle_enrichment(enr, ann, t, arr, uri, json, test_set);
             }
           }
-          else if (json.has_field("gene_to_term"))
+          else if (json.at("target").is_string())
           {
-            if (! json.has_field("genes"))
-            {
-              arr["err"] = web::json::value::string("Error: Translation selected "
-                                                    "but no test genes supplied.");
-              return;
-            }
-            if (! json.at("genes").is_array())
-            {
-              arr["err"] = web::json::value::string("Error: 'genes' needs to "
-                                                    "be an array of multiple genes");
-              return;
-            }
-            web::json::array genes = json.at("genes").as_array();
-            std::unordered_set<std::string> test_set;
-            for (web::json::value& gene : genes)
-              test_set.insert(gene.as_string());
-            if (json.at("gene_to_term").is_array())
-            {
-              web::json::array tasks = json.at("gene_to_term").as_array();
-              for (web::json::value& task : tasks)
-              {
-                std::string t = task.as_string();
-                handle_gene_to_term(enr, ann, t, arr, uri, json, test_set);
-              }
-            }
+            web::json::value task = json.at("target");
+            std::string t = task.as_string();
+            handle_enrichment(enr, ann, t, arr, uri, json, test_set);
           }
-          else if (json.has_field("term_to_gene"))
+          else
           {
-            if (json.at("term_to_gene").is_array())
-            {
-              web::json::array tasks = json.at("term_to_gene").as_array();
-              for (web::json::value& task : tasks)
-              {
-                handle_term_to_gene(enr, ann, task, arr, uri, json);
-              }
-            }
+            status = web::http::status_codes::BadRequest;
+            append_error(arr, "'target' needs to be a JSON array of enrichment "
+                         "targets or a string of a single enrichment target.");
           }
         }
         else
         {
           status = web::http::status_codes::BadRequest;
-          arr["err"] = web::json::value::string("no data");
+          append_error(arr, "No data");
         }
       }
       catch (web::http::http_exception const & e)
       {
         log(LOG_ERR) << e.what() << '\n';
-        arr["err"] = web::json::value::string(e.what());
+        append_error(arr, e.what());
       }
       catch (std::exception& e)
       {
         log(LOG_ERR) << e.what() << '\n';
-        arr["err"] = web::json::value::string(e.what());
+        append_error(arr, e.what());
       }
     }).wait();
 
@@ -150,18 +148,149 @@ void Listener::start() {
     request.reply(resp);
   });
 
-  listener.support(web::http::methods::OPTIONS,
+  /*////////////////////////////////////
+  //
+  //  HANDLE TERM-TO-GENE REQUESTS
+  //
+  *////////////////////////////////////
+
+  listener_t2g.support(web::http::methods::POST,
   [&](const web::http::http_request & request) {
-    log(LOG_INFO) << "Received OPTIONS\n";
-    web::http::http_response resp(web::http::status_codes::OK);
+
+    web::json::value arr;
+    web::http::status_code status = web::http::status_codes::OK;
+
+    request
+    .extract_json()
+    .then([&](pplx::task<web::json::value> task)
+    {
+      try
+      {
+        const web::json::value& json = task.get();
+        if (!json.is_null())
+        {
+          if (json.at("target").is_array())
+          {
+            web::json::array tasks = json.at("target").as_array();
+            for (web::json::value& task : tasks)
+            {
+              handle_term_to_gene(enr, ann, task, arr, uri, json);
+            }
+          }
+          else
+          {
+            web::json::value task = json.at("target");
+            handle_term_to_gene(enr, ann, task, arr, uri, json);
+          }
+        }
+        else
+        {
+          status = web::http::status_codes::BadRequest;
+          append_error(arr, "No data");
+        }
+      }
+      catch (web::http::http_exception const & e)
+      {
+        log(LOG_ERR) << e.what() << '\n';
+        append_error(arr, e.what());
+      }
+      catch (std::exception& e)
+      {
+        log(LOG_ERR) << e.what() << '\n';
+        append_error(arr, e.what());
+      }
+    }).wait();
+
+    web::http::http_response resp(status);
     resp.headers().add(U("Access-Control-Allow-Origin"), U("*"));
-    resp.headers().add(U("Access-Control-Allow-Headers"),
-                       U("Origin, Content-Type, Content-Range, "
-                         "Content-Disposition, Content-Description, Accept"));
-    resp.headers().add(U("Access-Control-Allow-Methods"),
-                       U("OPTIONS, POST"));
+    resp.headers().add(U("Content-Type"), U("application/json"));
+    resp.set_body(arr);
     request.reply(resp);
   });
+
+  /*////////////////////////////////////
+  //
+  //  HANDLE GENE-TO-TERM REQUESTS
+  //
+  *////////////////////////////////////
+
+  listener_g2t.support(web::http::methods::POST,
+  [&](const web::http::http_request & request) {
+
+    web::json::value arr;
+    web::http::status_code status = web::http::status_codes::OK;
+
+    request
+    .extract_json()
+    .then([&](pplx::task<web::json::value> task)
+    {
+      try
+      {
+        const web::json::value& json = task.get();
+
+        if (!json.is_null())
+        {
+          if (! json.has_field("genes"))
+          {
+            status = web::http::status_codes::BadRequest;
+            append_error(arr, "Error: translation selected but no test genes supplied.");
+            return;
+          }
+
+          web::json::array genes = json.at("genes").as_array();
+          std::unordered_set<std::string> test_set;
+          for (web::json::value& gene : genes)
+            test_set.insert(gene.as_string());
+          if (json.at("target").is_array())
+          {
+            web::json::array tasks = json.at("target").as_array();
+            for (web::json::value& task : tasks)
+            {
+              std::string t = task.as_string();
+              handle_gene_to_term(enr, ann, t, arr, uri, json, test_set);
+            }
+          }
+          else
+          {
+            web::json::value task = json.at("target");
+            std::string t = task.as_string();
+            handle_gene_to_term(enr, ann, t, arr, uri, json, test_set);
+          }
+        }
+        else
+        {
+          status = web::http::status_codes::BadRequest;
+          append_error(arr, "No data");
+        }
+      }
+      catch (web::http::http_exception const & e)
+      {
+        log(LOG_ERR) << e.what() << '\n';
+        append_error(arr, e.what());
+      }
+      catch (std::exception& e)
+      {
+        log(LOG_ERR) << e.what() << '\n';
+        append_error(arr, e.what());
+      }
+    }).wait();
+
+    web::http::http_response resp(status);
+    resp.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+    resp.headers().add(U("Content-Type"), U("application/json"));
+    resp.set_body(arr);
+    request.reply(resp);
+  });
+
+  /*////////////////////////////////////
+  //
+  //  HANDLE ALL OPTIONS REQUESTS
+  //
+  *////////////////////////////////////
+
+  listener_enr.support(web::http::methods::OPTIONS, options_request);
+  listener_g2t.support(web::http::methods::OPTIONS, options_request);
+  listener_t2g.support(web::http::methods::OPTIONS, options_request);
 
   while (true)
   {
@@ -177,33 +306,43 @@ void handle_post(const web::http::http_request& request, std::string x) {
 unsigned logger::_loglevel = LOG_DEFAULT;
 int main(int argc, char ** argv) {
 
-  logger log(std::cerr, "gopher2");
-
-  log(LOG_INFO) << "Starting gopher2\n";
+  logger log(std::cerr, "Gofer2");
 
   std::string file_config;
 
   try
   {
-    TCLAP::CmdLine cmd ("gopher2", ' ', "0.1");
-    TCLAP::UnlabeledValueArg<std::string>
-    arg_config("config.json", "Description", true, "Default", "string");
+    po::options_description desc("Gofer2: Serving GSEA as a REST API...\n"
+                                 "Required options");
+    desc.add_options()
+    ("in-file", po::value<std::string>(&file_config)->required(), "Config file");
 
-    cmd.add(arg_config);
+    po::positional_options_description p;
+    p.add("in-file", -1);
 
-    cmd.parse(argc, argv);
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).
+              options(desc).positional(p).run(), vm);
 
-    file_config = arg_config.getValue();
+    if (! vm.count("in-file"))
+    {
+      std::cerr << desc << '\n';
+      return 22;
+    }
+
+    po::notify(vm);
   }
-  catch (TCLAP::ArgException& e)
+  catch (std::exception& e)
   {
-    log(LOG_ERR) << e.error() << " in argument " << e.argId() << '\n';
+    log(LOG_ERR) << e.what() << '\n';
   }
-
-
 
   try
   {
+    log(LOG_INFO) << "Starting Gofer2\n";
+
+    file_config = fs::canonical(fs::path(file_config)).string();
+
     web::json::value config = parse_config(file_config);
 
     annotation ann;
@@ -227,7 +366,7 @@ int main(int argc, char ** argv) {
       for (web::json::value& org : arr)
       {
         std::string uri = org["uri"].as_string();
-        uri = base_uri + "/" + uri;
+        uri = concat_uri(base_uri, uri);
         enrichment enr;
         enr.from_json(org, ann);
         Listener l(enr, ann, uri);

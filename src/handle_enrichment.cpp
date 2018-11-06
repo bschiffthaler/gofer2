@@ -21,16 +21,15 @@ void handle_enrichment(enrichment& e, annotation& a, std::string& t,
   ret[t] = web::json::value();
   if (e.types.find(t) == e.types.end())
   {
-    ret[t]["err"] = web::json::value::string("Error: Enrichment type not supported"
-                    " by server.");
+    append_error(ret[t], "Error: Enrichment type not supported by server.");
     return;
   }
   if (json.has_field("include_names"))
   {
     if (! json.at("include_names").is_boolean())
     {
-      ret[t]["err"] = web::json::value::string("Error: 'include_names' found in JSON, "
-                      "but value was not boolean");
+      append_error(ret[t], "Error: 'include_names' found in JSON, but value"
+                   " cannot be interpreted as boolean");
       return;
     }
     names = json.at("include_names").as_bool();
@@ -39,8 +38,8 @@ void handle_enrichment(enrichment& e, annotation& a, std::string& t,
   {
     if (! json.at("include_defs").is_boolean())
     {
-      ret[t]["err"] = web::json::value::string("Error: 'include_defs' found in JSON, "
-                      "but value was not boolean");
+      append_error(ret[t], "Error: 'include_defs' found in JSON, but value"
+                   " cannot be interpreted as boolean");
       return;
     }
     defs = json.at("include_defs").as_bool();
@@ -49,8 +48,8 @@ void handle_enrichment(enrichment& e, annotation& a, std::string& t,
   {
     if (! json.at("alpha").is_number())
     {
-      ret[t]["err"] = web::json::value::string("Error: 'alpha' found in JSON, "
-                      "but value was not a number");
+      append_error(ret[t], "Error: 'alpha' found in JSON, but value cannot "
+                   "be interpreted as a number");
       return;
     }
   }
@@ -74,8 +73,8 @@ void handle_enrichment(enrichment& e, annotation& a, std::string& t,
         std::string key = t + "_" + json.at("background").as_string();
         if (e.background_gos.find(key) == e.background_gos.end())
         {
-          ret[t]["err"] = web::json::value::string("Background specified, but not "
-                          "found in memory");
+          append_error(ret[t], "Background specified, but not found in memory."
+                       "Did you mean to provide an array of genes?");
           return;
         }
         map = std::make_shared<mapping_go>(e.background_gos[key]);
@@ -104,17 +103,17 @@ void handle_enrichment(enrichment& e, annotation& a, std::string& t,
         filter_set.insert(id);
 
     // Make a set of terms that will be tested, specifically, all terms with
-    // any annotation to any gene will be tested  
+    // any annotation to any gene will be tested
     auto test_terms = map->all_b(filter_set);
     if (test_terms.size() == 0)
     {
-      ret[t]["err"] = web::json::value::string("No terms annotated to any of"
-                                               " the genes");
+      append_warning(ret[t], "No terms annotated to any of the genes");
       return;
     }
 
     for (const std::string& term : test_terms)
     {
+      // Do not test root terms
       if (a.go_by_name(mopt.annotation).is_root(term)) continue;
       test_go test;
       test.get_cardinality(filter_set, *map, term,
@@ -125,6 +124,14 @@ void handle_enrichment(enrichment& e, annotation& a, std::string& t,
         results.push_back(test);
         pvals.push_back(test.pval);
         terms.push_back(term);
+      }
+      else
+      {
+        append_warning(ret[t], "A p-value error signal was encountered "
+                       "processing term " + term + 
+                       "If you are using a custom background, double check that "
+                       "the test set is a subset of the background, otherwise "
+                       "double check results.");
       }
     }
     std::vector<double> padj = bh_adjust(pvals);
@@ -208,6 +215,14 @@ void handle_enrichment(enrichment& e, annotation& a, std::string& t,
         results.push_back(test);
         pvals.push_back(test.pval);
         terms.push_back(term);
+      }
+      else
+      {
+        append_warning(ret[t], "A p-value error signal was encountered "
+                       "processing term " + term + 
+                       "If you are using a custom background, double check that "
+                       "the test set is a subset of the background, otherwise "
+                       "double check results.");
       }
     }
     std::vector<double> padj = bh_adjust(pvals);
@@ -293,6 +308,14 @@ void handle_enrichment(enrichment& e, annotation& a, std::string& t,
         results.push_back(test);
         pvals.push_back(test.pval);
         terms.push_back(term);
+      }
+      else
+      {
+        append_warning(ret[t], "A p-value error signal was encountered "
+                       "processing term " + term + 
+                       "If you are using a custom background, double check that "
+                       "the test set is a subset of the background, otherwise "
+                       "double check results.");
       }
     }
     std::vector<double> padj = bh_adjust(pvals);
