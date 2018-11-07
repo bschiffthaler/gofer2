@@ -27,10 +27,13 @@ namespace fs = boost::filesystem;
 class Listener {
 public:
   void start();
-  Listener(enrichment e, annotation& a, std::string u) : ann(a), enr(e), uri(u) {}
+  Listener(enrichment e, annotation& a, std::string u,
+           const web::json::value& o) : ann(a), enr(e), opt(o), uri(u) {}
   annotation& ann;
   enrichment enr;
   std::string uri;
+  const web::json::value& opt;
+  web::http::experimental::listener::http_listener_config conf;
 };
 
 void options_request(const web::http::http_request & request) {
@@ -47,22 +50,42 @@ void options_request(const web::http::http_request & request) {
 void Listener::start() {
   logger log(std::cerr, uri);
 
+  if (opt.has_field("cert") && opt.has_field("chain") && opt.has_field("key"))
+  {
+    conf.set_ssl_context_callback([&](boost::asio::ssl::context & ctx)
+    {
+      ctx.set_options(boost::asio::ssl::context::default_workarounds);
+
+      // Password callback needs to be set before setting cert and key.
+      // ctx.set_password_callback([](std::size_t max_length, 
+      //                              boost::asio::ssl::context::password_purpose purpose)
+      // {
+      //   return "password";
+      // });
+
+      ctx.use_certificate_file(opt.at("cert").as_string(), boost::asio::ssl::context::pem);
+      ctx.use_private_key_file(opt.at("key").as_string(), boost::asio::ssl::context::pem);
+      ctx.use_certificate_chain_file(opt.at("chain").as_string());
+    });
+
+  }
+
   std::string uri_enrichment = concat_uri(uri, "enrichment");
   std::string uri_t2g = concat_uri(uri, "term-to-gene");
   std::string uri_g2t = concat_uri(uri, "gene-to-term");
 
   web::http::experimental::listener::http_listener
-  listener_enr(U(uri_enrichment));
+  listener_enr(U(uri_enrichment), conf);
   listener_enr.open().wait();
   log(LOG_INFO) << "Set up JSON listener at " << uri_enrichment << '\n';
 
   web::http::experimental::listener::http_listener
-  listener_t2g(U(uri_t2g));
+  listener_t2g(U(uri_t2g), conf);
   listener_t2g.open().wait();
   log(LOG_INFO) << "Set up JSON listener at " << uri_t2g << '\n';
 
   web::http::experimental::listener::http_listener
-  listener_g2t(U(uri_g2t));
+  listener_g2t(U(uri_g2t), conf);
   listener_g2t.open().wait();
   log(LOG_INFO) << "Set up JSON listener at " << uri_g2t << '\n';
 
@@ -349,13 +372,29 @@ int main(int argc, char ** argv) {
     ann.from_json(config);
 
     std::string port;
+    std::string ip;
     // Port is already checked in parse_config()
     if (config["port"].is_string())
       port = config["port"].as_string();
     else
       port = std::to_string(config["port"].as_integer());
 
-    std::string base_uri = "http://0.0.0.0:" + port;
+    ip = config["ip"].as_string();
+
+    std::string protocol;
+
+    if (config.has_field("cert") && 
+        config.has_field("chain") && 
+        config.has_field("key"))
+    {
+      protocol = "https://";
+    }
+    else
+    {
+      protocol = "http://";
+    }
+
+    std::string base_uri = protocol + ip + ":" + port;
 
     std::vector<Listener> listeners;
     std::vector<boost::thread> threads;
@@ -369,7 +408,7 @@ int main(int argc, char ** argv) {
         uri = concat_uri(base_uri, uri);
         enrichment enr;
         enr.from_json(org, ann);
-        Listener l(enr, ann, uri);
+        Listener l(enr, ann, uri, config);
         listeners.push_back(l);
       }
     }

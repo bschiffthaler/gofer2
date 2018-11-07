@@ -97,6 +97,9 @@ web::json::value parse_config(const std::string& file_in) {
   if (! ret.has_field("port"))
     ret["port"] = 5432;
 
+  if (! ret.has_field("ip"))
+    ret["ip"] = web::json::value::string("localhost");
+
   int p = ret["port"].as_integer();
 
   if (p < 1 || p > 65535)
@@ -110,11 +113,11 @@ web::json::value parse_config(const std::string& file_in) {
   // Check for 'org'
   if (! ret.has_field("org"))
     system_error("You need to provide at least one 'org' block"
-                             " in your config file");
+                 " in your config file");
 
   if (! ret["org"].is_array())
     system_error("The 'org' field in your config file should be a "
-                             "JSON array");
+                 "JSON array");
 
   web::json::array arr = ret["org"].as_array();
 
@@ -126,10 +129,10 @@ web::json::value parse_config(const std::string& file_in) {
       system_error("You need to provide a 'uri' for each organsim");
     if (! val.has_field("enrichment") )
       system_error("You need to provide at least one 'enrichment' "
-                               "array for each organism");
+                   "array for each organism");
     if (! val["enrichment"].is_array() )
       system_error("Enrichment " + val["name"].as_string() +
-                               " needs to be a JSON array");
+                   " needs to be a JSON array");
     if (val["enrichment"].as_array().size() < 1 )
       system_error("You need to provide at least one enrichment");
     web::json::array enrs = val["enrichment"].as_array();
@@ -137,23 +140,23 @@ web::json::value parse_config(const std::string& file_in) {
     {
       if (! enr.has_field("name"))
         system_error("You need to provide a 'name' for each "
-                                 "enrichment");
+                     "enrichment");
       if (! enr.has_field("test"))
         system_error("You need to provide a 'test' for each "
-                                 "enrichment");
+                     "enrichment");
       if (! enr.has_field("annotation"))
         system_error("You need to provide a 'annotation' for each "
-                                 "enrichment");
+                     "enrichment");
       if (! enr.has_field("mapping"))
         system_error("You need to provide a 'mapping' for each "
-                                 "enrichment");
+                     "enrichment");
       std::string test = enr["test"].as_string();
       std::string mapping = enr["mapping"].as_string();
       if (! fs::exists(fs::path(mapping)))
         system_error("Mapping " + mapping + " does not exist");
       if (test != "go" && test != "hierarchical" && test != "fisher")
         system_error("'test' needs to be one of 'go', "
-                                 "'hierarchical' or 'fisher'");
+                     "'hierarchical' or 'fisher'");
       enrichments.push_back(enr);
     }
   }
@@ -170,32 +173,32 @@ web::json::value parse_config(const std::string& file_in) {
 
   for (web::json::value& val : arr)
   {
-    if(! val.has_field("name"))
+    if (! val.has_field("name"))
       system_error("You need to provide a 'name' for each "
-                               "annotation");
-    if(! val.has_field("sourcefile"))
+                   "annotation");
+    if (! val.has_field("sourcefile"))
       system_error("You need to provide a 'sourcefile' for each "
-                               "annotation");
-    if(! val.has_field("type"))
+                   "annotation");
+    if (! val.has_field("type"))
       system_error("You need to provide a 'type' for each "
-                               "annotation");
+                   "annotation");
     std::string type = val["type"].as_string();
-    if(type != "flat" && type != "hierarchical" && type != "go")
+    if (type != "flat" && type != "hierarchical" && type != "go")
       system_error("'type' needs to be one of 'flat', 'hierarchical' or 'go'");
     std::string name = val["name"].as_string();
     annot_names.push_back(name);
   }
 
-  for(web::json::value& enr : enrichments)
+  for (web::json::value& enr : enrichments)
   {
     std::string source = enr["name"].as_string();
     std::string target = enr["annotation"].as_string();
     auto ptr = std::find(annot_names.begin(), annot_names.end(), target);
-    if(ptr == annot_names.end())
+    if (ptr == annot_names.end())
     {
       system_error("Target annotation '" + target + "' was not found "
-                               "for enrichment '" + source + "'");
-    } 
+                   "for enrichment '" + source + "'");
+    }
   }
 
   return ret;
@@ -218,7 +221,7 @@ void mapping_opt::get(web::json::value& opt) {
   fs::path p(file_in);
   if (! fs::exists(p))
     system_error("File: " + file_in +
-                             " does not exist for mapping " + name);
+                 " does not exist for mapping " + name);
 
   file_in = fs::canonical(p).string();
   std::string tp = opt["test"].as_string();
@@ -231,7 +234,7 @@ void mapping_opt::get(web::json::value& opt) {
     test = TEST_HIERARCHICAL;
   else
     system_error("Unknown test : " + tp + " for mapping " +
-                             name);
+                 name);
 
 }
 
@@ -465,7 +468,7 @@ void enrichment::from_json(web::json::value& json, annotation& ann) {
   }
 }
 
-void append_error(web::json::value& json, std::string msg){
+void append_error(web::json::value& json, std::string msg) {
   if (! json.has_field("err"))
   {
     json["err"] = web::json::value::array();
@@ -473,7 +476,7 @@ void append_error(web::json::value& json, std::string msg){
   json["err"][json["err"].size()] = web::json::value::string(msg);
 }
 
-void append_warning(web::json::value& json, std::string msg){
+void append_warning(web::json::value& json, std::string msg) {
   if (! json.has_field("warn"))
   {
     json["warn"] = web::json::value::array();
@@ -482,11 +485,11 @@ void append_warning(web::json::value& json, std::string msg){
 }
 
 std::string concat_uri(std::string prefix, std::string suffix) {
-  while(prefix.back() == '/')
+  while (prefix.back() == '/')
   {
     prefix.erase(prefix.size() - 1);
   }
-  while(suffix.front() == '/')
+  while (suffix.front() == '/')
   {
     suffix.erase(0);
   }
