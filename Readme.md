@@ -1,17 +1,17 @@
-# Gofer2 Wiki
+# Gofer2 - GSEA as a service
 
 ## Table of Contents
-* [Compiling Gopher2 from source](https://github.com/bschiffthaler/gofer2/wiki#compiling-gopher2-from-source)
-  * [Requirements](https://github.com/bschiffthaler/gofer2/wiki/Home#requirements)
-  * [Building](https://github.com/bschiffthaler/gofer2/wiki#building)
-* [The config file](https://github.com/bschiffthaler/gofer2/wiki#the-config-file)
-* [File formats](https://github.com/bschiffthaler/gofer2/wiki#file-formats)
-  * [Mappings](https://github.com/bschiffthaler/gofer2/wiki#mappings)
-  * [Annotations](https://github.com/bschiffthaler/gofer2/wiki#annotations)
-* [The Endpoints](https://github.com/bschiffthaler/gofer2/wiki#the-endpoints)
-  * [The enrichment endpoint](https://github.com/bschiffthaler/gofer2/wiki#the-enrichment-endpoint)
-  * [The gene-to-term endpoint](https://github.com/bschiffthaler/gofer2/wiki#the-gene-to-term-endpoint)
-  * [The term-to-gene endpoint](https://github.com/bschiffthaler/gofer2/wiki#the-term-to-gene-endpoint)
+* [Compiling Gopher2 from source](https://github.com/bschiffthaler/gofer2#compiling-gopher2-from-source)
+  * [Requirements](https://github.com/bschiffthaler/gofer2#requirements)
+  * [Building](https://github.com/bschiffthaler/gofer2#building)
+* [The config file](https://github.com/bschiffthaler/gofer2#the-config-file)
+* [File formats](https://github.com/bschiffthaler/gofer2#file-formats)
+  * [Mappings](https://github.com/bschiffthaler/gofer2#mappings)
+  * [Annotations](https://github.com/bschiffthaler/gofer2#annotations)
+* [The Endpoints](https://github.com/bschiffthaler/gofer2#the-endpoints)
+  * [The enrichment endpoint](https://github.com/bschiffthaler/gofer2#the-enrichment-endpoint)
+  * [The gene-to-term endpoint](https://github.com/bschiffthaler/gofer2#the-gene-to-term-endpoint)
+  * [The term-to-gene endpoint](https://github.com/bschiffthaler/gofer2#the-term-to-gene-endpoint)
 
 ## Compiling Gopher2 from source
 
