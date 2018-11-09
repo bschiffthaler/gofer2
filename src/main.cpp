@@ -43,7 +43,21 @@ void options_request(const web::http::http_request & request) {
                      U("Origin, Content-Type, Content-Range, "
                        "Content-Disposition, Content-Description, Accept"));
   resp.headers().add(U("Access-Control-Allow-Methods"),
-                     U("OPTIONS, POST"));
+                     U("OPTIONS, POST, GET"));
+  request.reply(resp);
+}
+
+void get_request(const web::http::http_request & request) {
+  web::http::http_response resp(web::http::status_codes::OK);
+  resp.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+  resp.headers().add(U("Access-Control-Allow-Headers"),
+                     U("Origin, Content-Type, Content-Range, "
+                       "Content-Disposition, Content-Description, Accept"));
+  resp.headers().add(U("Access-Control-Allow-Methods"),
+                     U("OPTIONS, POST, GET"));
+  web::json::value arr;
+  arr["status"] = web::json::value::string("OK. Gofer2 is running.");
+  resp.set_body(arr);
   request.reply(resp);
 }
 
@@ -100,6 +114,8 @@ void Listener::start() {
 
     web::json::value arr;
     web::http::status_code status = web::http::status_codes::OK;
+
+    //std::cerr << request.to_string() << '\n';
 
     request
     .extract_json()
@@ -314,6 +330,10 @@ void Listener::start() {
   listener_enr.support(web::http::methods::OPTIONS, options_request);
   listener_g2t.support(web::http::methods::OPTIONS, options_request);
   listener_t2g.support(web::http::methods::OPTIONS, options_request);
+
+  listener_enr.support(web::http::methods::GET, get_request);
+  listener_g2t.support(web::http::methods::GET, get_request);
+  listener_t2g.support(web::http::methods::GET, get_request);
 
   while (true)
   {
