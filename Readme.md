@@ -47,6 +47,7 @@ make
 
 ```json
 {
+    "ip": "localhost",
     "port": 5432,
     "org":[
         {
@@ -85,6 +86,10 @@ make
 ```
 
 At the root of this JSON file, there are three entries:
+* **ip** (Optional): The server name to listen on. Either an IP, localhost or domain name. - localhost by default
+* **cert** (Optional): Path to a PEM SSL certificate to use.
+* **key** (Optional): Path to the private key PEM of the SSL certificate.
+* **chain** (Optional): Path to the full chain PEM for the certificates. 
 * **port** (Optional): The port on which the server should listen - a number. The default is `5432`
 * **org** (Required): A JSON array of "organisms", i.e. species for which to host the API. Each array member has four possible fields:
   * **name** (Required): A name for this organism, e.g.: `"Populus tremula"`
