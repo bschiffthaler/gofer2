@@ -12,6 +12,7 @@
   * [The enrichment endpoint](https://github.com/bschiffthaler/gofer2#the-enrichment-endpoint)
   * [The gene-to-term endpoint](https://github.com/bschiffthaler/gofer2#the-gene-to-term-endpoint)
   * [The term-to-gene endpoint](https://github.com/bschiffthaler/gofer2#the-term-to-gene-endpoint)
+  * [The get-sets endpoint](https://github.com/bschiffthaler/gofer2#the-get-sets-endpoint)
 
 ## Compiling Gopher2 from source
 
@@ -613,7 +614,7 @@ At the root, we have again the annotations we requested. Within those we receive
 
 ### The get-sets endpoint
 
-This endpoint is meant to be used to explore results more in depth. For a given test, four cardinalities are usually calculated (mt, nt, m/pat, n/pat, see [the enrichment endpoint]()). This endpoint responds with the exact gene lists that make up these cardinalities.
+This endpoint is meant to be used to explore results more in depth. For a given test, four cardinalities are usually calculated (mt, nt, m/pat, n/pat, see [the enrichment endpoint](https://github.com/bschiffthaler/gofer2#the-enrichment-endpoint)). This endpoint responds with the exact gene lists that make up these cardinalities.
 
 A request is made up of three properties:
 * **target**: The exact name of the mapping that corresponds to the request.
