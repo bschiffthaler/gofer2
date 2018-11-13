@@ -20,6 +20,7 @@
 #include <boost/filesystem.hpp>
 #include <handle_enrichment.h>
 #include <handle_translation.h>
+#include <handle_get_sets.h>
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -71,7 +72,7 @@ void Listener::start() {
       ctx.set_options(boost::asio::ssl::context::default_workarounds);
 
       // Password callback needs to be set before setting cert and key.
-      // ctx.set_password_callback([](std::size_t max_length, 
+      // ctx.set_password_callback([](std::size_t max_length,
       //                              boost::asio::ssl::context::password_purpose purpose)
       // {
       //   return "password";
@@ -87,6 +88,7 @@ void Listener::start() {
   std::string uri_enrichment = concat_uri(uri, "enrichment");
   std::string uri_t2g = concat_uri(uri, "term-to-gene");
   std::string uri_g2t = concat_uri(uri, "gene-to-term");
+  std::string uri_gs = concat_uri(uri, "get-sets");
 
   web::http::experimental::listener::http_listener
   listener_enr(U(uri_enrichment), conf);
@@ -102,6 +104,11 @@ void Listener::start() {
   listener_g2t(U(uri_g2t), conf);
   listener_g2t.open().wait();
   log(LOG_INFO) << "Set up JSON listener at " << uri_g2t << '\n';
+
+  web::http::experimental::listener::http_listener
+  listener_gs(U(uri_gs), conf);
+  listener_gs.open().wait();
+  log(LOG_INFO) << "Set up JSON listener at " << uri_gs << '\n';
 
   /*////////////////////////////////////
   //
@@ -321,6 +328,85 @@ void Listener::start() {
     request.reply(resp);
   });
 
+
+  /*////////////////////////////////////
+  //
+  //  HANDLE GET SET GENES
+  //
+  *////////////////////////////////////
+
+  listener_gs.support(web::http::methods::POST,
+  [&](const web::http::http_request & request) {
+
+    web::json::value arr;
+    web::http::status_code status = web::http::status_codes::OK;
+
+    //std::cerr << request.to_string() << '\n';
+
+    request
+    .extract_json()
+    .then([&](pplx::task<web::json::value> task)
+    {
+      try
+      {
+        const web::json::value& json = task.get();
+        if (!json.is_null())
+        {
+          if (! json.has_field("genes"))
+          {
+            append_error(arr, "Error: Get sets selected but no test genes supplied.");
+            return;
+          }
+          if (! json.at("genes").is_array())
+          {
+            append_error(arr, "Error: 'genes' needs to be a JSON array of multiple genes");
+            return;
+          }
+          if (! json.at("target").is_string())
+          {
+            append_error(arr, "Error: 'target' needs to be a string of the set target");
+            return;
+          }
+          if (! json.at("term").is_string())
+          {
+            append_error(arr, "Error: 'term' needs to be a string of the set term");
+            return;
+          }
+          web::json::array genes = json.at("genes").as_array();
+          std::unordered_set<std::string> test_set;
+          for (web::json::value& gene : genes)
+            test_set.insert(gene.as_string());
+
+          web::json::value task = json.at("target");
+          std::string t = task.as_string();
+          std::string test_term = json.at("term").as_string();
+          handle_get_sets(enr, ann, t, arr, uri, json, test_set, test_term);
+        }
+        else
+        {
+          status = web::http::status_codes::BadRequest;
+          append_error(arr, "No data");
+        }
+      }
+      catch (web::http::http_exception const & e)
+      {
+        log(LOG_ERR) << e.what() << '\n';
+        append_error(arr, e.what());
+      }
+      catch (std::exception& e)
+      {
+        log(LOG_ERR) << e.what() << '\n';
+        append_error(arr, e.what());
+      }
+    }).wait();
+
+    web::http::http_response resp(status);
+    resp.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+    resp.headers().add(U("Content-Type"), U("application/json"));
+    resp.set_body(arr);
+    request.reply(resp);
+  });
+
   /*////////////////////////////////////
   //
   //  HANDLE ALL OPTIONS REQUESTS
@@ -330,10 +416,12 @@ void Listener::start() {
   listener_enr.support(web::http::methods::OPTIONS, options_request);
   listener_g2t.support(web::http::methods::OPTIONS, options_request);
   listener_t2g.support(web::http::methods::OPTIONS, options_request);
+  listener_gs.support(web::http::methods::OPTIONS, options_request);
 
   listener_enr.support(web::http::methods::GET, get_request);
   listener_g2t.support(web::http::methods::GET, get_request);
   listener_t2g.support(web::http::methods::GET, get_request);
+  listener_gs.support(web::http::methods::GET, get_request);
 
   while (true)
   {
@@ -403,8 +491,8 @@ int main(int argc, char ** argv) {
 
     std::string protocol;
 
-    if (config.has_field("cert") && 
-        config.has_field("chain") && 
+    if (config.has_field("cert") &&
+        config.has_field("chain") &&
         config.has_field("key"))
     {
       protocol = "https://";

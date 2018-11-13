@@ -73,7 +73,7 @@ void test_go::get_cardinality(std::unordered_set<std::string>& test_set,
 void test_fisher::get_cardinality(std::unordered_set<std::string>& test_set,
                                   mapping_flat& map,
                                   const std::string& id) {
-  logger log(std::cerr, "test_go::get_cardinality");
+  logger log(std::cerr, "test_fisher::get_cardinality");
   //log(LOG_INFO) << "Testing " << id << '\n';
 
   mt = map.b_to_a(id).size();

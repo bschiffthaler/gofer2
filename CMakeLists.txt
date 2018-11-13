@@ -7,8 +7,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/Modules")
 
 add_executable (gofer2 src/main.cpp src/utility.cpp src/datastructures_go.cpp 
                 src/datastructures_flat.cpp src/datastructures_hierarchical.cpp
-                src/term.cpp src/test.cpp src/handle_enrichment.cpp
-                src/handle_translation.cpp src/BSlogger.hpp)
+                src/term.cpp src/test.cpp src/set_memberships.cpp 
+                src/handle_enrichment.cpp src/handle_translation.cpp 
+                src/handle_get_sets.cpp src/BSlogger.hpp)
 
 include_directories(src)
 
