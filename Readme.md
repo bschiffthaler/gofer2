@@ -194,6 +194,7 @@ In this example, we are serving one organism (_Populus tremula_) and two enrichm
 * `localhost:5432/potra/enrichment`
 * `localhost:5432/potra/gene-to-term`
 * `localhost:5432/potra/term-to-gene`
+* `localhost:5432/potra/get-sets`
 
 We can now send POST requests to these endpoints.
 
@@ -609,3 +610,149 @@ At the root, we have again the annotations we requested. Within those we receive
 * **root**: The current annotation, in our case either "go" or "pfam". Contains an array of term->gene mappings
   * **term**: The ID of the current term
   * **ids**: An array of gene IDs corresponding to the current term
+
+### The get-sets endpoint
+
+This endpoint is meant to be used to explore results more in depth. For a given test, four cardinalities are usually calculated (mt, nt, m/pat, n/pat, see [the enrichment endpoint]()). This endpoint responds with the exact gene lists that make up these cardinalities.
+
+A request is made up of three properties:
+* **target**: The exact name of the mapping that corresponds to the request.
+* **genes**: A list of test genes
+* **term**: The name of the exact term that should be explored
+
+```json
+{
+  "target":"go", 
+  "genes": [ 
+    "Potra000167g00627", "Potra000488g03037", "Potra000807g06409", 
+    "Potra001021g08534", "Potra001230g10582", "Potra002409g18324", 
+    "Potra002707g19806", "Potra002846g20119", "Potra002888g20235", 
+    "Potra002914g20296", "Potra003868g23243", "Potra003935g23615", 
+    "Potra004051g24387"],
+  "term": "GO:0016760"
+}
+```
+
+The server responds with:
+
+```json
+{
+  "GO:0016760": {
+    "sets": {
+      "mpat": [
+        "Potrs000033g00082",
+        "Potra001230g10582",
+        "Potra004051g24387",
+        "Potra003868g23243",
+        "Potra002409g18324",
+        "Potra003411g21584",
+        "Potra003265g21167",
+        "Potra000167g00627",
+        "Potra002914g20296",
+        "Potra002910g20286",
+        "Potra002888g20235",
+        "Potra002583g19426",
+        "Potra002707g19806",
+        "Potra002239g17201",
+        "Potra002250g17293",
+        "Potra000882g07128",
+        "Potra001665g13679",
+        "Potra003908g23461",
+        "Potra003908g23460",
+        "Potra004085g24472",
+        "Potra000807g06409",
+        "Potra001085g09396",
+        "Potra001034g08699",
+        "Potra001288g11102",
+        "Potra001021g08534",
+        "Potra002846g20119",
+        "Potra001526g12689",
+        "Potra000473g02869",
+        "Potra001426g12051",
+        "Potra000490g03079",
+        "Potra000503g03273",
+        "Potra000488g03037",
+        "Potra003935g23615",
+        "Potra000490g34919",
+        "Potra000490g03080"
+      ],
+      "mt": [
+        "Potra000167g00627",
+        "Potra000473g02869",
+        "Potra000488g03037",
+        "Potra000490g03079",
+        "Potra000490g03080",
+        "Potra000490g34919",
+        "Potra000503g03273",
+        "Potra000807g06409",
+        "Potra000882g07128",
+        "Potra001021g08534",
+        "Potra001034g08699",
+        "Potra001085g09396",
+        "Potra001230g10582",
+        "Potra001288g11102",
+        "Potra001426g12051",
+        "Potra001526g12689",
+        "Potra001665g13679",
+        "Potra002239g17201",
+        "Potra002250g17293",
+        "Potra002409g18324",
+        "Potra002583g19426",
+        "Potra002707g19806",
+        "Potra002846g20119",
+        "Potra002888g20235",
+        "Potra002910g20286",
+        "Potra002914g20296",
+        "Potra003265g21167",
+        "Potra003411g21584",
+        "Potra003868g23243",
+        "Potra003908g23460",
+        "Potra003908g23461",
+        "Potra003935g23615",
+        "Potra004051g24387",
+        "Potra004085g24472",
+        "Potrs000033g00082"
+      ],
+      "npat": [
+        "Potra004051g24387",
+        "Potra002846g20119",
+        "Potra002888g20235",
+        "Potra002707g19806",
+        "Potra000488g03037",
+        "Potra002409g18324",
+        "Potra000167g00627",
+        "Potra002914g20296",
+        "Potra003935g23615",
+        "Potra003868g23243",
+        "Potra000807g06409",
+        "Potra001230g10582",
+        "Potra001021g08534"
+      ],
+      "nt": [
+        "Potra000167g00627",
+        "Potra001021g08534",
+        "Potra003935g23615",
+        "Potra002914g20296",
+        "Potra003868g23243",
+        "Potra002409g18324",
+        "Potra001230g10582",
+        "Potra000807g06409",
+        "Potra002888g20235",
+        "Potra000488g03037",
+        "Potra002707g19806",
+        "Potra002846g20119",
+        "Potra004051g24387"
+      ]
+    }
+  }
+}
+```
+
+* **root**: The term that was requested
+* **sets**: A JSON object with four properties:
+  * **mt**: A set of genes in the whole background annotated to term t
+  * **nt**: A set of genes in the test set annotated to term t
+  * **mpat** (Only go and hierarchical): A set of genes in the background annotated to parents of term t
+  * **npat** (Only go and hierarchical): A set of genes in the test set annotated to parents of term t
+  * **m** (Only flat): A set of genes in the background annotated to any term
+  * **n** (Only flat): A set of genes in the test set annotated to any term
