@@ -13,6 +13,12 @@
   * [The gene-to-term endpoint](https://github.com/bschiffthaler/gofer2#the-gene-to-term-endpoint)
   * [The term-to-gene endpoint](https://github.com/bschiffthaler/gofer2#the-term-to-gene-endpoint)
   * [The get-sets endpoint](https://github.com/bschiffthaler/gofer2#the-get-sets-endpoint)
+  
+## Screencasts
+Here are three screencasts that might help you to get started:
+* Part 0: File types in gofer2: https://youtu.be/SZOjK9Qbwq0
+* Part 1: Building gofer2: https://youtu.be/lSsH-VVNbiQ
+* Part 2: Configuring gofer2: https://youtu.be/MyTFblgE0dU
 
 ## Compiling Gopher2 from source
 
@@ -20,6 +26,8 @@
 * CMake (>3.0)
 * Boost (>1.60)
 * CppRestSDK (>2.10.1)
+* Openssl
+* A C++ compiler (g++, clang++)
 
 The basic recipe assumes that you have dependencies in standard locations:
 
