@@ -1,0 +1,6 @@
+{
+  "target":["go","pfam","kegg"], 
+  "genes": ["Potra000167g00627", "Potra000488g03037"], 
+  "include_defs": true,
+  "include_names": true
+}

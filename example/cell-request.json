@@ -1,0 +1,12 @@
+{
+  "target":["go","pfam","kegg","mapman"], 
+  "genes": [ 
+    "Potra000068g00252", "Potra000309g01107", "Potra000449g02529", 
+    "Potra000500g03229", "Potra000538g03781", "Potra001203g10380", 
+    "Potra001309g11249", "Potra001799g14575", "Potra002187g16850", 
+    "Potra002269g17397", "Potra002384g18157", "Potra004086g24474", 
+    "Potra188156g28569"], 
+  "include_defs": false, 
+  "include_names": true,
+  "alpha":0.05
+}

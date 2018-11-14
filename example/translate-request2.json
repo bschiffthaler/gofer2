@@ -1,0 +1,13 @@
+{
+  "target":[
+    {
+      "name": "go",
+      "terms": ["GO:0030244", "GO:0016760"],
+      "include_defs": true
+    },
+    {
+      "name": "pfam",
+      "terms": ["PF03552"]
+    }
+  ]
+}

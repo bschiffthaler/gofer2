@@ -1,0 +1,65 @@
+{
+    "port": 5432,
+    "ip": "0.0.0.0",
+    "org":[
+        {
+            "name": "Populus tremula",
+            "uri": "potra",
+            "enrichment": [
+                {
+                    "name": "go",
+                    "test": "go",
+                    "annotation": "GO_basic",
+                    "mapping": "../example/gene_go_mapping.tsv"
+                },
+                {
+                    "name": "pfam",
+                    "test": "fisher",
+                    "annotation": "PFAM",
+                    "mapping": "../example/gene_to_pfam.tsv"
+                },
+                {
+                    "name": "kegg",
+                    "test": "fisher",
+                    "annotation": "Kegg",
+                    "mapping": "../example/gene_to_kegg.tsv"
+                },
+                {
+                    "name": "mapman",
+                    "test": "fisher",
+                    "annotation": "potra_mapman",
+                    "mapping": "../script/potra_gene_to_mapman.txt"
+                }
+            ],
+            "background": [
+                {
+                    "name": "alpha2000",
+                    "sourcefile": "../example/background_alpha_2000.txt"
+                }
+            ]
+        }
+    ],
+    "annotation": [
+        {
+            "name": "PFAM",
+            "sourcefile": "../script/pfam.txt",
+            "type": "flat"
+        },
+        {
+            "name": "GO_basic",
+            "sourcefile": "../script/go-basic.obo",
+            "type": "go",
+            "parent": ["part_of", "regulates"]
+        },
+        {
+            "name": "Kegg",
+            "sourcefile": "../script/kegg.txt",
+            "type": "flat"
+        },
+        {
+            "name": "potra_mapman",
+            "sourcefile": "../script/potra_mapman.txt",
+            "type": "flat"
+        }
+    ]
+}
